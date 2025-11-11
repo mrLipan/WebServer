@@ -56,6 +56,7 @@ class EventLoop {
   Channel* currentActiveChannel_;
 
   mutable MutexLock mutex_;
+  // 其他线程线程对当前 Loop 的线程安全调用任务队列
   std::vector<Functor> pendingFunctors_;
 };
 
