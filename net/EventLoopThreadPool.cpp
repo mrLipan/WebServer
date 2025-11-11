@@ -1,12 +1,15 @@
 #include "EventLoopThreadPool.h"
 
 EventLoopThreadPool::EventLoopThreadPool(EventLoop* baseLoop,
-                                         const string& name)
+                                         const string& name,
+					 const int numThreads)
     : baseLoop_(baseLoop),
       name_(name),
       started_(false),
-      numThreads_(0),
-      next_(0) {}
+      numThreads_(numThreads),
+      next_(0) {
+  assert(numThreads_ >= 0);
+}
 
 EventLoopThreadPool::~EventLoopThreadPool() {}
 
