@@ -29,7 +29,7 @@ Epoll::Epoll(EventLoop* loop)
     : loop_(loop),
       epollFd_(epoll_create1(EPOLL_CLOEXEC)),
       events_(kInitEventListSize) {
-  assert(epollFd_ > 0);
+  assert(epollFd_ >= 0);
 }
 Epoll::~Epoll() { close(epollFd_); }
 
@@ -67,7 +67,21 @@ void Epoll::update(int operation, Channel* channel) {
   event.events = channel->getEvents();
   event.data.ptr = channel;
   if (epoll_ctl(epollFd_, operation, fd, &event) < 0) {
-    // 日志
+    switch (operation)
+    {
+    case EPOLL_CTL_DEL:
+      LOG_SYSERR << "epoll_ctl op =DEL fd =" << fd;
+      break;
+    case EPOLL_CTL_ADD:
+      LOG_SYSFATAL << "epoll_ctl op =ADD fd =" << fd;
+      break;
+    case EPOLL_CTL_MOD:
+      LOG_SYSFATAL << "epoll_ctl op =MOD fd =" << fd;
+      break;
+    default:
+      assert(false && "ERROR operation");
+      break;
+    }
   }
 }
 
@@ -96,11 +110,15 @@ void Epoll::poll(int timeout, ChannelList* activeChannels) {
   assertInLoopThread();
   int numEvents;
   if ((numEvents = epoll_wait(epollFd_, &*events_.begin(),
-                              static_cast<int>(events_.size()), timeout)) < 0) {
+                              static_cast<int>(events_.size()), timeout)) < 0)
+  {
     if (errno != EINTR) {
       // error happened
+      LOG_SYSERR << "EPollPoller::poll()";
     }
-  } else if (numEvents > 0) {
+  } 
+  else if (numEvents > 0)
+  {
     fillActiveChannels(numEvents, activeChannels);
     if (numEvents == static_cast<int>(events_.size()))
       events_.resize(events_.size() << 1);
