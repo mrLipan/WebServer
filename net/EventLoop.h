@@ -28,7 +28,7 @@ class EventLoop {
   bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
   void assertInLoopThread() { assert(isInLoopThread()); }
 
-  // 针对监听套接字的专属函数
+  // 断开连接
   void shutdown(Channel* channel) { shutDownWR(channel->getFd()); }
 
   void updateChannel(Channel*);
