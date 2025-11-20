@@ -19,7 +19,7 @@ const int kPollTimeMs = 10000;
 int createEventfd() {
   int evtfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
   if (evtfd < 0) {
-    // 日志
+    LOG_SYSERR << "Failed in eventfd";
     abort();
   }
   return evtfd;
@@ -37,10 +37,12 @@ EventLoop::EventLoop()
       wakeupFd_(createEventfd()),
       wakeupChannel_(new Channel(this, wakeupFd_)),
       currentActiveChannel_(NULL) {
-  if (t_loopInThisThread) {
-    // LOG << "Another EventLoop " << t_loopInThisThread << " exists in this
-    // thread " << threadId_;
-  } else {
+  if (t_loopInThisThread)
+  {
+    LOG_FATAL << "Another EventLoop " << t_loopInThisThread << " exists in this thread " << threadId_;
+  }
+  else
+  {
     t_loopInThisThread = this;
   }
   wakeupChannel_->setReadHandler(std::bind(&EventLoop::handleRead, this));
@@ -128,6 +130,16 @@ bool EventLoop::hasChannel(Channel* channel) {
   return poller_->hasChannel(channel);
 }
 
+void EventLoop::wakeup()
+{
+  uint64_t one = 1;
+  ssize_t n = write(wakeupFd_, &one, sizeof one);
+  if (n != sizeof one)
+  {
+    LOG_ERROR << "EventLoop::wakeup() writes " << n << " bytes instead of 8";
+  }
+}
+
 void EventLoop::doPendingFunctors() {
   std::vector<Functor> functors;
   callingPendingFunctors_ = true;
@@ -147,6 +159,6 @@ void EventLoop::handleRead() {
   uint64_t one = 1;
   ssize_t n = read(wakeupFd_, &one, sizeof(one));
   if (n != sizeof(one)) {
-    // 日志
+    LOG_ERROR << "EventLoop::handleRead() reads " << n << " bytes instead of 8";
   }
 }
