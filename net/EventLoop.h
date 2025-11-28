@@ -1,23 +1,21 @@
 #ifndef EVENTLOOP_H
 #define EVENTLOOP_H
 
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <vector>
-
-#include "Channel.h"
-#include "Epoll.h"
-#include "Util.h"
 #include "base/CurrentThread.h"
-#include "base/Logging.h"
-#include "base/Thread.h"
+#include "base/Mutex.h"
+
+#include <assert.h>
+#include <functional>
+#include <memory>
+
+class Channel;
+class Epoll;
+
 using namespace std;
 
 class EventLoop {
  public:
   typedef std::function<void()> Functor;
-  typedef std::vector<Channel*> ChannelList;
   EventLoop();
   ~EventLoop();
   void loop();
@@ -28,19 +26,16 @@ class EventLoop {
   bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
   void assertInLoopThread() { assert(isInLoopThread()); }
 
-  // 断开连接
-  void shutdown(Channel* channel) { shutDownWR(channel->getFd()); }
-
   void updateChannel(Channel*);
   void removeChannel(Channel*);
   bool hasChannel(Channel*);
-
-  void handleRead();
 
  private:
   void wakeup();
   void handleRead();
   void doPendingFunctors();
+
+  typedef std::vector<Channel*> ChannelList;
 
   bool looping_;
   bool quit_;
