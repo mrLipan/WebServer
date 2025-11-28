@@ -17,7 +17,8 @@ Server::Server(EventLoop* loop, const string port,
       eventLoopThreadPool_(new EventLoopThreadPool(serverLoop_, name, numThreads)),
       started_(false),
       listening_(false),
-      acceptChannel_(new Channel(serverLoop_, listenFd_)) {
+      acceptChannel_(new Channel(serverLoop_, listenFd_))
+{
   handle_for_sigpipe();
   acceptChannel_->setReadHandler(std::bind(&Server::handleNewConn, this));
 }
@@ -51,15 +52,17 @@ void Server::start()
   acceptChannel_->enableReading();
 }
 
-int Server::socket_bind(const char* port, bool reuseport) {
+int Server::socket_bind(const char* port, bool reuseport)
+{
   serverLoop_->assertInLoopThread();
   struct addrinfo hints, *listp, *p;
-  int listenfd, optval = 1;
+  int listenfd;
 
   memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE | AI_NUMERICSERV;
-  if (getaddrinfo(NULL, port, &hints, &listp) != 0) {
+  if (getaddrinfo(NULL, port, &hints, &listp) != 0)
+  {
     LOG_SYSFATAL << "Server::socket_bind";
   }
 
@@ -77,21 +80,16 @@ int Server::socket_bind(const char* port, bool reuseport) {
   }
 
   freeaddrinfo(listp);
-  if (!p) {
+  if (!p)
+  {
     LOG_SYSFATAL << "Server::socket_bind";
   }
-
-  // 为了测试保存服务地址
-  FILE *f = fopen("sockaddr", "wb");
-  if (!f) LOG_SYSFATAL << "Server::socket_bind";
-  size_t n = fwrite(p->ai_addr, sizeof(struct sockaddr), 1, f);
-  fclose(f);
-  if (n != 1) LOG_SYSFATAL << "Server::socket_bind";
 
   return listenfd;
 }
 
-void Server::handleNewConn() {
+void Server::handleNewConn()
+{
   serverLoop_->assertInLoopThread();
   assert(listening_);
   struct sockaddr clientAddr;
@@ -141,12 +139,14 @@ void Server::newConnection(const int connfd, const struct sockaddr *clientAddr)
   EventLoop* loop = eventLoopThreadPool_->getNextLoop();
   char ip[INET6_ADDRSTRLEN];
   uint16_t port;
-  if (clientAddr->sa_family == AF_INET) {
+  if (clientAddr->sa_family == AF_INET)
+  {
       struct sockaddr_in *clientAddrIn = (struct sockaddr_in *)clientAddr;
       inet_ntop(AF_INET, &clientAddrIn->sin_addr, ip, sizeof(ip));
       port = ntohs(clientAddrIn->sin_port);
   } 
-  else if (clientAddr->sa_family == AF_INET6) {
+  else if (clientAddr->sa_family == AF_INET6)
+  {
       struct sockaddr_in6 *clientAddrIn6 = (struct sockaddr_in6 *)clientAddr;
       inet_ntop(AF_INET6, &clientAddrIn6->sin6_addr, ip, sizeof(ip));
       port = ntohs(clientAddrIn6->sin6_port);
