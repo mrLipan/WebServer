@@ -1,8 +1,6 @@
 #ifndef EVENTLOOPTHREAD_H
 #define EVENTLOOPTHREAD_H
 
-#include "base/Condition.h"
-#include "base/Mutex.h"
 #include "base/Thread.h"
 #include "base/noncopyable.h"
 #include "net/EventLoop.h"
