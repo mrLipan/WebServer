@@ -1,20 +1,13 @@
 #include "Channel.h"
-
-#include <unistd.h>
-
-#include <cstdlib>
-#include <iostream>
-#include <queue>
-
-#include "Epoll.h"
 #include "EventLoop.h"
-#include "Util.h"
+
+#include <assert.h>
 
 using namespace std;
 
 Channel::Channel(EventLoop* loop, int fd)
     : loop_(loop),
-      fd_(0),
+      fd_(fd),
       events_(0),
       revents_(0),
       state_(-1),
@@ -22,7 +15,8 @@ Channel::Channel(EventLoop* loop, int fd)
       eventHandling_(false),
       addedToLoop_(false) {}
 
-Channel::~Channel() {
+Channel::~Channel()
+{
   assert(!eventHandling_);
   assert(!addedToLoop_);
   if (loop_->isInLoopThread()) {
