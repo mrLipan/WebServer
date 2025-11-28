@@ -10,11 +10,13 @@
 
 __thread char t_errnobuf[512];
 
-const char* strerror_tl(int savedErrno) {
+const char* strerror_tl(int savedErrno)
+{
   return strerror_r(savedErrno, t_errnobuf, sizeof t_errnobuf);
 }
 
-void defaultOutput(const char* msg, int len) {
+void defaultOutput(const char* msg, int len)
+{
   [[maybe_unused]] size_t n = fwrite(msg, 1, len, stdout);
 }
 
@@ -25,21 +27,27 @@ Logger::OutputFunc g_output = defaultOutput;
 Logger::FlushFunc g_flush = defaultFlush;
 static std::unique_ptr<AsyncLogging> g_asyncLogger;
 
-void initAsyncLogger(const std::string& filename) {
-  g_asyncLogger.reset(new AsyncLogging(filename));
-  g_asyncLogger->start();
-  Logger::setOutput(asyncOutput);
-}
-
-void asyncOutput(const char* msg, int len) {
-  if (g_asyncLogger) {
+void asyncOutput(const char* msg, int len)
+{
+  if (g_asyncLogger)
+  {
     g_asyncLogger->append(msg, len);
-  } else {
+  } 
+  else
+  {
     defaultOutput(msg, len);
   }
 }
 
-const char* LogLevelName[Logger::NUM_LOG_LEVELS] = {
+void initAsyncLogger(const std::string& filename, off_t rollSize)
+{
+  g_asyncLogger.reset(new AsyncLogging(filename, rollSize));
+  g_asyncLogger->start();
+  Logger::setOutput(asyncOutput);
+}
+
+const char* LogLevelName[Logger::NUM_LOG_LEVELS] =
+{
     "INFO  ",
     "WARN  ",
     "ERROR ",
@@ -48,17 +56,20 @@ const char* LogLevelName[Logger::NUM_LOG_LEVELS] = {
 
 Logger::Impl::Impl(LogLevel level, int savedErrno, const char* fileName,
                    int line)
-    : stream_(), level_(level), line_(line), basename_(fileName) {
+    : stream_(), level_(level), line_(line), basename_(fileName)
+{
   formatTime();
   CurrentThread::tid();
   stream_ << CurrentThread::tidString();
   stream_ << LogLevelName[level];
-  if (savedErrno != 0) {
+  if (savedErrno != 0)
+  {
     stream_ << strerror_tl(savedErrno) << " (errno=" << savedErrno << ") ";
   }
 }
 
-void Logger::Impl::formatTime() {
+void Logger::Impl::formatTime()
+{
   time_t now = time(NULL);
   char str_t[26] = {0};
   struct tm* p_time = localtime(&now);
@@ -75,7 +86,8 @@ Logger::Logger(const char* fileName, int line, LogLevel level)
 Logger::Logger(const char* fileName, int line, bool toAbort)
     : impl_(toAbort ? FATAL : ERROR, errno, fileName, line) {}
 
-Logger::~Logger() {
+Logger::~Logger()
+{
   impl_.stream_ << " -- " << impl_.basename_ << ':' << impl_.line_ << '\n';
   const LogStream::Buffer& buf(stream().buffer());
   g_output(buf.data(), buf.length());
@@ -90,4 +102,3 @@ void Logger::setLogLevel(Logger::LogLevel level) { g_logLevel = level; }
 void Logger::setOutput(OutputFunc out) { g_output = out; }
 
 void Logger::setFlush(FlushFunc flush) { g_flush = flush; }
-
