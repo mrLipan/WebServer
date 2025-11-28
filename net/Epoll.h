@@ -1,24 +1,17 @@
 #ifndef EPOLLER_H
 #define EPOLLER_H
 
-#include <sys/epoll.h>
-
-#include <memory>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 #include "Channel.h"
 #include "EventLoop.h"
-#include "HttpData.h"
-#include "Timer.h"
 
 class Epoll : noncopyable {
  public:
   typedef std::vector<Channel*> ChannelList;
-  typedef std::map<int, Channel*> ChannelMap;
-  typedef std::vector<struct epoll_event> EventList;
 
-  Epoll(EventLoop* Loop);
+  Epoll(EventLoop* loop);
   ~Epoll();
 
   void poll(int timeout, ChannelList* activeChannels);
@@ -33,6 +26,9 @@ class Epoll : noncopyable {
  private:
   void update(int operation, Channel* channel);
   void fillActiveChannels(int numEvents, ChannelList* activeChannels) const;
+
+  typedef std::map<int, Channel*> ChannelMap;
+  typedef std::vector<struct epoll_event> EventList;
 
   static const int kInitEventListSize = 64;
   EventLoop* loop_;
