@@ -1,17 +1,13 @@
 #ifndef CHANNEL_H
 #define CHANNEL_H
 
-#include <sys/epoll.h>
+#include "base/noncopyable.h"
 
+#include <sys/epoll.h>
 #include <functional>
 #include <memory>
-#include <string>
-#include <unordered_map>
-
-#include "Timer.h"
 
 class EventLoop;
-class HttpData;
 
 class Channel : noncopyable {
  public:
@@ -39,6 +35,10 @@ class Channel : noncopyable {
   }
   void disableWriting() {
     events_ &= ~EPOLLOUT;
+    update();
+  }
+  void setET() {
+    events_ |= EPOLLET;
     update();
   }
   void disableAll() {
