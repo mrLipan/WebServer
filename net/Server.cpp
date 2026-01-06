@@ -8,17 +8,16 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 
-Server::Server(EventLoop* loop, const string port,
+Server::Server(EventLoop* loop, const int port,
                const string name, int numThreads, bool reuseport)
     : serverLoop_(CHECK_NOTNULL(loop)),
       port_(port),
       name_(name),
-      listenFd_(socket_bind(port_.c_str(), reuseport)),
+      listenFd_(socket_bind(port_, reuseport)),
       eventLoopThreadPool_(new EventLoopThreadPool(serverLoop_, name, numThreads)),
       started_(false),
       listening_(false),
-      acceptChannel_(new Channel(serverLoop_, listenFd_))
-{
+      acceptChannel_(new Channel(serverLoop_, listenFd_)) {
   handle_for_sigpipe();
   acceptChannel_->setReadHandler(std::bind(&Server::handleNewConn, this));
 }
@@ -52,44 +51,39 @@ void Server::start()
   acceptChannel_->enableReading();
 }
 
-int Server::socket_bind(const char* port, bool reuseport)
-{
+int Server::socket_bind(const int port, bool reuseport) {
   serverLoop_->assertInLoopThread();
-  struct addrinfo hints, *listp, *p;
   int listenfd;
+  struct sockaddr_in server_addr;
 
-  memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE | AI_NUMERICSERV;
-  if (getaddrinfo(NULL, port, &hints, &listp) != 0)
+  if (port < 0 || port > 65535)
   {
     LOG_SYSFATAL << "Server::socket_bind";
   }
 
-  for (p = listp; p; p = p->ai_next) {
-    if ((listenfd =
-             socket(p->ai_family, p->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC,
-                    p->ai_protocol)) < 0)
-      continue;
-
-    if (!setReuseAddr(listenfd, true) || !setReusePort(listenfd, reuseport)) continue; 
-
-    if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) break;
-
-    close(listenfd);
+  if ((listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP)) < 0)
+  {
+    LOG_SYSFATAL << "Server::socket_bind";
   }
 
-  freeaddrinfo(listp);
-  if (!p)
+  setReuseAddr(listenfd, true);
+  setReusePort(listenfd, reuseport);
+
+  bzero((char *)&server_addr, sizeof(server_addr));
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_addr.sin_port = htons((unsigned short)port);
+
+  if (bind(listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
   {
+    close(listenfd);
     LOG_SYSFATAL << "Server::socket_bind";
   }
 
   return listenfd;
 }
 
-void Server::handleNewConn()
-{
+void Server::handleNewConn() {
   serverLoop_->assertInLoopThread();
   assert(listening_);
   struct sockaddr clientAddr;
@@ -139,14 +133,12 @@ void Server::newConnection(const int connfd, const struct sockaddr *clientAddr)
   EventLoop* loop = eventLoopThreadPool_->getNextLoop();
   char ip[INET6_ADDRSTRLEN];
   uint16_t port;
-  if (clientAddr->sa_family == AF_INET)
-  {
+  if (clientAddr->sa_family == AF_INET) {
       struct sockaddr_in *clientAddrIn = (struct sockaddr_in *)clientAddr;
       inet_ntop(AF_INET, &clientAddrIn->sin_addr, ip, sizeof(ip));
       port = ntohs(clientAddrIn->sin_port);
   } 
-  else if (clientAddr->sa_family == AF_INET6)
-  {
+  else if (clientAddr->sa_family == AF_INET6) {
       struct sockaddr_in6 *clientAddrIn6 = (struct sockaddr_in6 *)clientAddr;
       inet_ntop(AF_INET6, &clientAddrIn6->sin6_addr, ip, sizeof(ip));
       port = ntohs(clientAddrIn6->sin6_port);
@@ -155,8 +147,10 @@ void Server::newConnection(const int connfd, const struct sockaddr *clientAddr)
            << "] - new connection from " << ip << ":"
            << port;
 
-  std::shared_ptr<HttpServer> conn(new HttpServer(loop, connfd));
+  HttpServerPtr conn(new HttpServer(loop, connfd));
   connections_[connfd] = conn;
+  conn->setCloseCallback(
+      std::bind(&Server::removeConnection, this, std::placeholders::_1));
   loop->runInLoop(std::bind(&HttpServer::connectEstablished, conn));
 }
 
