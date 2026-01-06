@@ -377,4 +377,3 @@ class Buffer
 
 
 #endif  // BUFFER_H
-
