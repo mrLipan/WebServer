@@ -6,6 +6,7 @@
 
 #include "Channel.h"
 #include "EventLoop.h"
+#include "Timer.h"
 
 class Epoll : noncopyable {
  public:
@@ -18,6 +19,8 @@ class Epoll : noncopyable {
 
   void updateChannel(Channel* channel);
   void removeChannel(Channel* channel);
+  void add_timer(Channel *channel, int timeout);
+  void handleExpired() { timerManager_.handleExpiredEvent(); }
 
   bool hasChannel(Channel* channel) const;
 
@@ -35,6 +38,7 @@ class Epoll : noncopyable {
   int epollFd_;
   ChannelMap channels_;
   EventList events_;
+  TimerManager timerManager_;
 };
 
 #endif
