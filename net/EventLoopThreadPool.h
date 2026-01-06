@@ -3,9 +3,9 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 #include "EventLoopThread.h"
-#include "base/Logging.h"
 #include "base/noncopyable.h"
 
 class EventLoopThreadPool : noncopyable {
