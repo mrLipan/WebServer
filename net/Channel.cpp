@@ -2,6 +2,7 @@
 #include "EventLoop.h"
 
 #include <assert.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -22,6 +23,7 @@ Channel::~Channel()
   if (loop_->isInLoopThread()) {
     assert(!loop_->hasChannel(this));
   }
+  close(fd_);
 }
 
 void Channel::update() {
