@@ -11,11 +11,11 @@
 class Server {
  public:
   typedef std::function<void(EventLoop*)> ThreadInitCallback;
-  Server(EventLoop* loop, const string port, const string name, int numThreads, bool reuseport);
+  Server(EventLoop* loop, const int port, const string name, int numThreads, bool reuseport);
   ~Server();
   EventLoop* getLoop() const { return serverLoop_; }
   void start();
-  int socket_bind(const char *port, bool reuseport);
+  int socket_bind(const int port, bool reuseport);
   void handleNewConn();
 
  private:
@@ -28,7 +28,7 @@ class Server {
   bool started_;
   bool listening_;
   EventLoop* serverLoop_;
-  const string port_;
+  const int port_;
   const string name_;
   int listenFd_;
   std::shared_ptr<EventLoopThreadPool> eventLoopThreadPool_;
