@@ -53,6 +53,7 @@ class Channel : noncopyable {
     tie_ = obj;
     tied_ = true;
   }
+  std::shared_ptr<void> getTie() { return tie_.lock(); }
 
   void setReadHandler(EventCallback&& cb) { readHandler_ = cb; }
   void setWriteHandler(EventCallback&& cb) { writeHandler_ = cb; }
@@ -75,10 +76,6 @@ class Channel : noncopyable {
  private:
   void update();
   void handleEventWithGuard();
-
-  // int parse_URI();
-  // int parse_Headers();
-  // int analysisRequest();
 
   EventLoop* loop_;
   int fd_;
