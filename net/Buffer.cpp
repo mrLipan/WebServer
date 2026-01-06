@@ -35,4 +35,3 @@ ssize_t Buffer::readFd(int fd, int* savedErrno)
   }
   return n;
 }
-
