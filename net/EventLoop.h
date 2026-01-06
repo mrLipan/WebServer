@@ -29,6 +29,7 @@ class EventLoop {
   void updateChannel(Channel*);
   void removeChannel(Channel*);
   bool hasChannel(Channel*);
+  void add_timer(Channel* channel, int timeout);
 
  private:
   void wakeup();
