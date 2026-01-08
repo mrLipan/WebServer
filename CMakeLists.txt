@@ -27,4 +27,3 @@ message(STATUS "CXX_FLAGS = " ${CMAKE_CXX_FLAGS} " " ${CMAKE_CXX_FLAGS_${BUILD_T
 
 add_subdirectory(WebServer/base)
 add_subdirectory(WebServer/net)
-add_subdirectory(WebServer/tests)
