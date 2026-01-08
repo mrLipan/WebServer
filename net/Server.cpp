@@ -17,7 +17,9 @@ Server::Server(EventLoop* loop, const int port,
       eventLoopThreadPool_(new EventLoopThreadPool(serverLoop_, name, numThreads)),
       started_(false),
       listening_(false),
-      acceptChannel_(new Channel(serverLoop_, listenFd_)) {
+      acceptChannel_(new Channel(serverLoop_, listenFd_)),
+      idleFd_(open("/dev/null", O_RDONLY | O_CLOEXEC)) {
+  assert(idleFd_ >= 0);
   handle_for_sigpipe();
   acceptChannel_->setReadHandler(std::bind(&Server::handleNewConn, this));
 }
@@ -33,6 +35,7 @@ Server::~Server()
     conn->getLoop()->runInLoop(
       std::bind(&HttpServer::connectDestroyed, conn));
   }
+  close(idleFd_);
 }
 
 void Server::start()
@@ -90,13 +93,8 @@ void Server::handleNewConn() {
   memset(&clientAddr, 0, sizeof(struct sockaddr));
   socklen_t addrLen = sizeof(clientAddr);
   int connfd;
-  while ((connfd = accept4(listenFd_, &clientAddr, &addrLen, SOCK_NONBLOCK | SOCK_CLOEXEC)) > 0)
+  while ((connfd = accept4(listenFd_, &clientAddr, &addrLen, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0)
   {
-     if (connfd >= MAXFDS)
-     {
-      close(connfd);
-      continue;
-    }
     setNoDelay(connfd, true);
     newConnection(connfd, &clientAddr);
   }
@@ -124,6 +122,13 @@ void Server::handleNewConn() {
     default:
       LOG_FATAL << "unknown error of accept4 " << savedErrno;
       break;
+  }
+  if (savedErrno == EMFILE)
+  {
+    close(idleFd_);
+    idleFd_ = accept(listenFd_, NULL, NULL);
+    close(idleFd_);
+    idleFd_ = open("/dev/null", O_RDONLY | O_CLOEXEC);
   }
 }
 
