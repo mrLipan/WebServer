@@ -11,7 +11,7 @@ set(SRCS
     Timer.cpp
     Util.cpp
 )
-include_directories(${PROJECT_SOURCE_DIR}/WebServer)
+include_directories(${PROJECT_SOURCE_DIR})
 
 
 add_executable(WebServer ${SRCS})
