@@ -31,13 +31,13 @@ class Server {
   const int port_;
   const string name_;
   int listenFd_;
+  int idleFd_;
   std::shared_ptr<EventLoopThreadPool> eventLoopThreadPool_;
   // 初始化 Loop 回调
   ThreadInitCallback threadInitCallback_;
   std::unique_ptr<Channel> acceptChannel_;
 
   ConnectionMap connections_;
-  static const int MAXFDS = 100000;
 };
 
 #endif
